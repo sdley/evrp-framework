@@ -1,0 +1,44 @@
+# Model Architecture Configuration
+
+encoder:
+  type: gat # 'gat' or 'mlp'
+  embed_dim: 128
+  n_heads: 8
+  n_layers: 3
+  ff_dim: 256
+  dropout: 0.0
+  layer_norm: true
+
+decoder:
+  type: cross_attention # Decoder type
+  embed_dim: 128
+  n_heads: 8
+
+value_head:
+  hidden_dim: 64
+  activation: gelu
+
+training:
+  optimizer: adam
+  lr: 3.0e-4
+  epsilon: 1.0e-5
+  weight_decay: 0.0
+
+  # Learning rate schedule
+  scheduler: cosine_annealing
+  T_max: 800 # Max episodes (must match n_episodes in problem.yaml)
+  eta_min_factor: 0.1 # eta_min = lr * eta_min_factor
+
+  # Gradient clipping
+  grad_clip_norm: 1.0
+
+  # A2C-specific
+  gamma: 0.99 # Discount factor
+  entropy_coefficient: 0.01 # Entropy regularization strength
+  value_coefficient: 0.5 # Value loss weight
+
+  # Seeds for reproducibility
+  seeds:
+    - 42
+    - 123
+    - 777

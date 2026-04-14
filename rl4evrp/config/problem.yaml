@@ -1,0 +1,34 @@
+# EVRP Problem Configuration
+
+problem:
+  n_customers: 15 # Problem size (excluding depot)
+  charger_prob: 0.15 # Fraction of nodes that become chargers
+  cargo_capacity: 30.0 # Vehicle cargo capacity
+  battery_capacity: 100.0 # Vehicle battery capacity
+  n_train_instances: 200 # Training instances to rotate per episode
+  n_eval_instances: 50 # Evaluation instances
+
+episode:
+  max_steps: null # None = 4 * n_nodes
+  n_episodes: 800 # Episodes per training seed
+
+reward_modes:
+  - distance # Minimize route distance: reward = -dist / d_max
+  - inverse_distance # Reward short hops: reward = 0.4 / (dist/d_max + 0.05)
+
+node_features:
+  feature_dim: 7
+  types:
+    - x # X coordinate
+    - y # Y coordinate
+    - demand_normalized # Demand / cargo_capacity
+    - is_charger # Binary indicator
+    - is_depot # Binary indicator
+    - cargo_capacity_norm # Cargo cap / 50.0
+    - battery_capacity_norm # Battery cap / 200.0
+
+metrics:
+  collect_traces: true # Collect per-step traces for XAI
+  track_battery_log: true
+  track_charger_visits: true
+  track_violations: true
