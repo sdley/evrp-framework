@@ -41,6 +41,7 @@ def run_episode(agent, inst: dict, device: str = 'cpu', greedy: bool = False,
     total_reward = 0.0
     transitions = []
     traces = [] if collect_traces else None
+    use_grad = (not greedy) or collect_traces
     
     while not done:
         # Apply state perturbations (for counterfactual analysis)
@@ -56,8 +57,8 @@ def run_episode(agent, inst: dict, device: str = 'cpu', greedy: bool = False,
                     np.clip(obs['cargo_norm'] * cargo_perturb, 0, 1)
                 )
         
-        # Select action
-        with torch.no_grad():
+        # Select action (with gradient tracking during training)
+        with torch.set_grad_enabled(use_grad):
             action, log_prob, entropy, value = agent.select_action(obs_use, greedy=greedy)
         
         # Collect traces if requested
@@ -141,6 +142,10 @@ def train_agent(agent, train_instances: List[Dict], n_episodes: int = 100,
     Returns:
         results: Dict with training statistics
     """
+    # Ensure agent is in training mode and set device
+    agent.train()
+    agent.to(device)
+    
     if save_dir is not None:
         save_dir = Path(save_dir)
         save_dir.mkdir(exist_ok=True, parents=True)
@@ -155,21 +160,23 @@ def train_agent(agent, train_instances: List[Dict], n_episodes: int = 100,
         inst = train_instances[episode % len(train_instances)]
         inst['reward_mode'] = 'distance'  # Default reward mode
         
-        # Run episode
-        episode_reward, route, total_dist, info, transitions, _, _ = run_episode(
-            agent, inst, device=device, greedy=False
-        )
+        # Run episode with gradients enabled
+        with torch.enable_grad():
+            episode_reward, route, total_dist, info, transitions, _, _ = run_episode(
+                agent, inst, device=device, greedy=False
+            )
         
-        # Update agent
-        loss, ent = agent.update([
-            {
-                'r': t['reward'],
-                'lp': t['log_prob'],
-                'ent': t['entropy'],
-                'val': t['value']
-            }
-            for t in transitions
-        ])
+        # Update agent with gradients enabled
+        with torch.enable_grad():
+            loss, ent = agent.update([
+                {
+                    'r': t['reward'],
+                    'lp': t['log_prob'],
+                    'ent': t['entropy'],
+                    'val': t['value']
+                }
+                for t in transitions
+            ])
         
         train_rewards.append(episode_reward)
         losses.append(loss)
