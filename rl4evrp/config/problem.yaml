@@ -1,34 +1,48 @@
 # EVRP Problem Configuration
+#
+# This file defines the EVRP instance size, resource limits, reward behavior,
+# and the feature layout used by the neural network.
 
 problem:
-  n_customers: 15 # Problem size (excluding depot)
-  charger_prob: 0.15 # Fraction of nodes that become chargers
-  cargo_capacity: 30.0 # Vehicle cargo capacity
-  battery_capacity: 100.0 # Vehicle battery capacity
-  n_train_instances: 200 # Training instances to rotate per episode
-  n_eval_instances: 50 # Evaluation instances
+  name: evrp # Problem identifier used in logs and outputs
+  n_customers: 15 # Number of customers to place in each instance
+  charger_prob: 0.15 # Probability that a non-depot node becomes a charger
+  cargo_capacity: 30.0 # Maximum load the vehicle can carry
+  battery_capacity: 100.0 # Maximum battery charge the vehicle can hold
+
+instance_generation:
+  train_size: 200 # Number of generated training instances
+  eval_size: 50 # Number of held-out evaluation instances
+  seed_offset: 0 # Base seed offset for deterministic instance creation
 
 episode:
-  max_steps: null # None = 4 * n_nodes
-  n_episodes: 800 # Episodes per training seed
+  n_episodes: 800 # Training episodes per run
+  max_steps_factor: 4 # Episode limit = factor * number of nodes
 
-reward_modes:
-  - distance # Minimize route distance: reward = -dist / d_max
-  - inverse_distance # Reward short hops: reward = 0.4 / (dist/d_max + 0.05)
+reward:
+  default_mode: distance # Default reward mode used by the environment
+  modes:
+    - distance
+    - inverse_distance
+  service_bonus: 0.2 # Reward for serving a customer
+  completion_bonus: 2.0 # Bonus for returning to depot after all customers are served
+  charger_penalty: 0.05 # Small penalty for visiting a charger
+  early_return_penalty: 0.3 # Penalty for returning to depot before completing service
+  battery_violation_penalty: 1.0 # Penalty when battery feasibility is broken
 
 node_features:
-  feature_dim: 7
-  types:
-    - x # X coordinate
-    - y # Y coordinate
-    - demand_normalized # Demand / cargo_capacity
-    - is_charger # Binary indicator
-    - is_depot # Binary indicator
-    - cargo_capacity_norm # Cargo cap / 50.0
-    - battery_capacity_norm # Battery cap / 200.0
+  feature_dim: 7 # Number of input features per node
+  names:
+    - x # Normalized x-coordinate
+    - y # Normalized y-coordinate
+    - demand_normalized # Customer demand divided by cargo capacity
+    - is_charger # Binary indicator for charger nodes
+    - is_depot # Binary indicator for the depot node
+    - cargo_capacity_norm # Cargo capacity normalized for the model input
+    - battery_capacity_norm # Battery capacity normalized for the model input
 
 metrics:
-  collect_traces: true # Collect per-step traces for XAI
-  track_battery_log: true
-  track_charger_visits: true
-  track_violations: true
+  collect_traces: true # Collect per-step traces for XAI and debugging
+  track_battery_log: true # Store battery level after each step
+  track_charger_visits: true # Count how often the route uses chargers
+  track_violations: true # Track battery and cargo constraint violations

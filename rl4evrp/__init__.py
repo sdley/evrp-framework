@@ -68,7 +68,7 @@ class RL4EVRP:
     
     def _setup_device(self):
         """Setup compute device (CUDA or CPU)."""
-        device_cfg = self.config.get('device', 'cuda')
+        device_cfg = self.config.get('env.device', 'cuda')
         
         if device_cfg == 'cuda' or device_cfg == 'auto':
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -79,7 +79,7 @@ class RL4EVRP:
     
     def _setup_seed(self):
         """Setup reproducibility seeds."""
-        seed = self.config.get('reproducibility.seed', 42)
+        seed = self.config.get('env.reproducibility.seed', 42)
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -87,13 +87,13 @@ class RL4EVRP:
             torch.cuda.manual_seed_all(seed)
         
         # Set deterministic mode
-        if self.config.get('reproducibility.deterministic', True):
+        if self.config.get('env.reproducibility.deterministic', True):
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
     
     def _setup_output(self):
         """Setup output directory."""
-        output_dir = self.config.get('output_directory', 'results_xai')
+        output_dir = self.config.get('env.output_directory', 'results_xai')
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         
@@ -138,7 +138,7 @@ class RL4EVRP:
     
     def get_seeds(self) -> List[int]:
         """Get training seeds from config."""
-        return self.config.get('training.seeds', [42, 123, 777])
+        return self.config.get('model.training.seeds', [42, 123, 777])
     
     def print_config(self):
         """Print all loaded configurations."""
@@ -163,7 +163,7 @@ class ModelBuilder:
         """Build encoder."""
         enc_cfg = self.model_cfg.get('encoder', {})
         return EVRPEncoder(
-            input_dim=self.problem_cfg.get('node_features.feature_dim', 7),
+            input_dim=self.framework.config.get('problem.node_features.feature_dim', 7),
             embed_dim=enc_cfg.get('embed_dim', 128),
             n_heads=enc_cfg.get('n_heads', 8),
             n_layers=enc_cfg.get('n_layers', 3),
@@ -182,17 +182,18 @@ class ModelBuilder:
         """Build A2C agent."""
         model_cfg = self.model_cfg
         train_cfg = model_cfg.get('training', {})
+        encoder_cfg = model_cfg.get('encoder', {})
         
         agent = A2CAgent(
-            embed_dim=model_cfg.get('encoder.embed_dim', 128),
-            n_heads=model_cfg.get('encoder.n_heads', 8),
-            n_layers=model_cfg.get('encoder.n_layers', 3),
+            embed_dim=encoder_cfg.get('embed_dim', 128),
+            n_heads=encoder_cfg.get('n_heads', 8),
+            n_layers=encoder_cfg.get('n_layers', 3),
             lr=train_cfg.get('lr', 3e-4),
             gamma=train_cfg.get('gamma', 0.99),
             entropy_coef=train_cfg.get('entropy_coefficient', 0.01),
             value_coef=train_cfg.get('value_coefficient', 0.5),
-            enc_type=model_cfg.get('encoder.type', 'gat'),
-            n_episodes=self.problem_cfg.get('episode.n_episodes', 800),
+            enc_type=encoder_cfg.get('type', 'gat'),
+            n_episodes=self.framework.config.get('problem.episode.n_episodes', 800),
             device=str(self.framework.device)
         )
         
