@@ -122,13 +122,12 @@ class RL4EVRP:
     
     def generate_instance(self, seed: int = None) -> dict:
         """Generate a random EVRP instance."""
-        cfg = self.config.get_section('problem')
         return generate_instance(
-            n_customers=cfg.get('n_customers', 15),
+            n_customers=self.config.get('problem.problem.n_customers', 15),
             seed=seed,
-            charger_prob=cfg.get('charger_prob', 0.15),
-            cargo_cap=cfg.get('cargo_capacity', 30.0),
-            battery_cap=cfg.get('battery_capacity', 100.0)
+            charger_prob=self.config.get('problem.problem.charger_prob', 0.15),
+            cargo_cap=self.config.get('problem.problem.cargo_capacity', 30.0),
+            battery_cap=self.config.get('problem.problem.battery_capacity', 100.0)
         )
     
     def create_environment(self, inst: dict, reward_mode: str = 'distance') -> EVRPEnv:
