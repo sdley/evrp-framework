@@ -68,14 +68,14 @@ def run_episode(agent, inst: dict, device: str = 'cpu', greedy: bool = False,
             
             # Average attention over heads
             attn_avg = (
-                dec_attn[0].mean(0).squeeze(0).cpu().numpy()
-                if dec_attn is not None else np.zeros(env.n)
+                dec_attn[0].mean(0).squeeze(0).detach().cpu().tolist()
+                if dec_attn is not None else [0.0] * env.n
             )
             
             # Encoder self-attention at current node
             enc_attn_row = (
-                enc_attn[0].mean(0)[obs['current_node']].cpu().numpy()
-                if enc_attn is not None else np.zeros(env.n)
+                enc_attn[0].mean(0)[obs['current_node']].detach().cpu().tolist()
+                if enc_attn is not None else [0.0] * env.n
             )
             
             # Top-3 actions
@@ -92,13 +92,13 @@ def run_episode(agent, inst: dict, device: str = 'cpu', greedy: bool = False,
                 cargo_abs=float(obs['cargo_norm'] * inst['cargo_cap']),
                 action_prob=float(probs[action].item()),
                 action_logit=float(scores.squeeze(0)[action].item()),
-                raw_logits=scores.squeeze(0).cpu().detach().numpy().tolist(),
+                raw_logits=scores.squeeze(0).detach().cpu().tolist(),
                 top3_nodes=top3_n.tolist(),
                 top3_probs=top3_p.tolist(),
                 valid_mask=obs['valid_mask'].tolist(),
                 invalid_count=int((~obs['valid_mask']).sum()),
-                dec_attn=attn_avg.tolist(),
-                enc_attn=enc_attn_row.tolist(),
+                dec_attn=attn_avg,
+                enc_attn=enc_attn_row,
                 dist_to_action=float(env.D[obs['current_node'], action]),
                 dist_to_depot=float(env.D[action, 0]),
                 is_charger=int(inst['node_types'][action] == 2),
