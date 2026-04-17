@@ -26,7 +26,7 @@ training:
 
   # Learning rate schedule
   scheduler: cosine_annealing
-  T_max: 800 # Max episodes (must match n_episodes in problem.yaml)
+  T_max: 500000 # Max episodes (must match n_episodes in problem.yaml)
   eta_min_factor: 0.1 # eta_min = lr * eta_min_factor
 
   # Gradient clipping

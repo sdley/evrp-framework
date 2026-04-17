@@ -4,19 +4,19 @@
 # and the feature layout used by the neural network.
 
 problem:
-  name: evrp # Problem identifier used in logs and outputs
+  name: evrptw # Problem identifier used in logs and outputs
   n_customers: 25 # Number of customers to place in each instance
   charger_prob: 0.15 # Probability that a non-depot node becomes a charger
   cargo_capacity: 30.0 # Maximum load the vehicle can carry
   battery_capacity: 100.0 # Maximum battery charge the vehicle can hold
 
 instance_generation:
-  train_size: 200 # Number of generated training instances
+  train_size: 250000 # Number of generated training instances
   eval_size: 50 # Number of held-out evaluation instances
   seed_offset: 0 # Base seed offset for deterministic instance creation
 
 episode:
-  n_episodes: 800 # Training episodes per run
+  n_episodes: 500000 # Training episodes per run
   max_steps_factor: 4 # Episode limit = factor * number of nodes
 
 reward:
