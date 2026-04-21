@@ -122,12 +122,30 @@ class RL4EVRP:
     
     def generate_instance(self, seed: int = None) -> dict:
         """Generate a random EVRP instance."""
+        tw_cfg = self.config.get('problem.time_windows', {})
+        reward_cfg = self.config.get('problem.reward', {})
         return generate_instance(
             n_customers=self.config.get('problem.problem.n_customers', 15),
             seed=seed,
             charger_prob=self.config.get('problem.problem.charger_prob', 0.15),
             cargo_cap=self.config.get('problem.problem.cargo_capacity', 30.0),
-            battery_cap=self.config.get('problem.problem.battery_capacity', 100.0)
+            battery_cap=self.config.get('problem.problem.battery_capacity', 100.0),
+            tw_enabled=tw_cfg.get('enabled', True),
+            time_horizon=tw_cfg.get('time_horizon', 4.0),
+            tw_width_min=tw_cfg.get('tw_width_min', 0.4),
+            tw_width_max=tw_cfg.get('tw_width_max', 1.2),
+            service_time_customer=tw_cfg.get('service_time_customer', 0.05),
+            service_time_charger=tw_cfg.get('service_time_charger', 0.03),
+            service_time_depot=tw_cfg.get('service_time_depot', 0.0),
+            reward_params={
+                'service_bonus': reward_cfg.get('service_bonus', 0.2),
+                'completion_bonus': reward_cfg.get('completion_bonus', 2.0),
+                'charger_penalty': reward_cfg.get('charger_penalty', 0.05),
+                'early_return_penalty': reward_cfg.get('early_return_penalty', 0.3),
+                'battery_violation_penalty': reward_cfg.get('battery_violation_penalty', 1.0),
+                'time_window_violation_penalty': reward_cfg.get('time_window_violation_penalty', 1.5),
+                'waiting_time_penalty': reward_cfg.get('waiting_time_penalty', 0.05),
+            }
         )
     
     def create_environment(self, inst: dict, reward_mode: str = 'distance') -> EVRPEnv:
@@ -184,6 +202,7 @@ class ModelBuilder:
         encoder_cfg = model_cfg.get('encoder', {})
         
         agent = A2CAgent(
+            input_dim=self.framework.config.get('problem.node_features.feature_dim', 10),
             embed_dim=encoder_cfg.get('embed_dim', 128),
             n_heads=encoder_cfg.get('n_heads', 8),
             n_layers=encoder_cfg.get('n_layers', 3),
@@ -214,4 +233,3 @@ def read_yaml(yaml_path: str) -> Dict:
 
 # Make main classes easily importable
 __all__.extend(['read_yaml'])
-

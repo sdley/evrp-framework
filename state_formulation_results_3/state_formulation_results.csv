@@ -1,0 +1,6 @@
+distance_mean,distance_std,served_mean,feasible_rate,charger_mean,config,n_features,feature_names,train_time_min
+3.2483890998363494,0.7619679681250338,1.63,0.0,5.91,Original full,10,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'battery_capacity_norm', 'tw_ready_norm', 'tw_due_norm', 'service_time_norm']",72.18142810265223
+3.9351452469825743,0.42539159789944464,0.27,0.0,8.58,Static graph,10,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'zeros', 'zeros', 'zeros', 'zeros', 'zeros']",68.22922583818436
+3.635215113162994,0.48487517216255976,3.62,0.0,6.28,Spatial+time,10,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'tw_ready_norm', 'tw_due_norm', 'service_time_norm', 'zeros', 'zeros']",54.03921718994776
+3.952053725719452,0.45739161660077293,0.25,0.0,9.84,Resource-aware,10,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'battery_capacity_norm', 'demand_over_cargo', 'zeros', 'zeros']",74.62825629313787
+2.9566814947128295,0.7793580428997104,2.2,0.0,1.23,Constraint-aware,10,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'battery_capacity_norm', 'tw_window_width_norm', 'tw_due_norm', 'service_time_norm']",73.65316151380539
