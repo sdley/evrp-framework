@@ -791,7 +791,7 @@ MIT — see [LICENSE](LICENSE).
 ## Citation
 
 ```bibtex
-@software{rl4evrp2024,
+@software{rl4evrp2026,
   title  = {rl4evrp: Deep Reinforcement Learning for the Electric Vehicle
             Routing Problem with Explainable AI},
   author = {Noucier, Dimeth and Diallo, Souleymane and Habibi, Imen and
