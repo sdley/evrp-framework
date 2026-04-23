@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rl4evrp"
+version = "0.1.0"
+description = "Deep Reinforcement Learning Framework for Electric Vehicle Routing Problems with Explainable AI"
+requires-python = ">=3.8"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Dimeth Noucier", email = "dimethnoucer@gmail.com" },
+    { name = "souleymane Diallo", email = "diallo.souleymane1@uam.edu.sn"},
+    { name = "Imen Habibi", email = "imen.habibi@enstab.ucar.tn"},
+    { name = "Jeremie Mabiala", email = "jeremie@aims.ac.za"},
+    { name = "Mame Diarra", email = "mame.d.diouf@aims-senegal.org"},
+    { name = "Elie Mulamba", email = "elie.mulamba5@gmail.com"}
+]
+
+keywords = ["reinforcement-learning", "vehicle-routing", "electric-vehicles", "graph-attention", "explainable-ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.0.0",
+    "numpy>=1.23.0",
+    "pandas>=1.5.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "plotly>=5.14.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=0.21.0",
+]
+
+[project.optional-dependencies]
+llm = ["groq>=0.4.0"]
+dev = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.20.0",
+    "pytest>=7.0",
+    "ruff>=0.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/sdley/evrp-framework"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rl4evrp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
