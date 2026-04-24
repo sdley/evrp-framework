@@ -8,6 +8,7 @@ Quickstart
 
 Public subpackages
 ------------------
+rl4evrp               RL4EVRP | ModelBuilder  (high-level paper API)
 rl4evrp.environment   generate_instance | build_node_features | make_dataset | EVRPEnv
 rl4evrp.models        EVRPEncoder | EVRPDecoder | MultiHeadAttention
 rl4evrp.agents        A2CAgent
@@ -42,6 +43,7 @@ from .environment import EVRPEnv, generate_instance, build_node_features, make_d
 from .models import EVRPEncoder, EVRPDecoder, MultiHeadAttention
 from .agents import A2CAgent
 from .utils import run_episode, train_agent, evaluate_agent, OnTheFlyInstancePool
+from .framework import RL4EVRP, ModelBuilder
 from . import xai
 
 __version__ = "0.1.0"
@@ -66,6 +68,9 @@ __all__ = [
     "train_agent",
     "evaluate_agent",
     "OnTheFlyInstancePool",
+    # high-level framework API
+    "RL4EVRP",
+    "ModelBuilder",
     # xai
     "xai",
 ]

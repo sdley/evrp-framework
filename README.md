@@ -10,10 +10,49 @@
 
 ---
 
+## Features
+
+**Reinforcement learning core**
+
+- A2C (Advantage Actor-Critic) agent with entropy regularisation and gradient clipping
+- Graph Attention Network (GAT) encoder — or swap to MLP with one flag
+- Cross-attention decoder with feasibility masking (invalid actions are never selected)
+- Cosine annealing learning-rate schedule and configurable discount factor
+
+**Energy-aware environment**
+
+- Battery and cargo constraints enforced at every step
+- Three node types: depot (refills both), customer (serves demand), charger (refills battery)
+- Configurable step limit, reward bonuses/penalties, and two reward modes (`distance` / `inverse_distance`)
+
+**Scalable training**
+
+- `OnTheFlyInstancePool` — generates instances lazily; no RAM overhead for large training sets
+- Multi-seed reproducibility out of the box
+- Checkpoint saving at configurable intervals; resume-friendly
+
+**Explainability (XAI)**
+
+- `AttentionTracer` — capture encoder and decoder attention weights at every step
+- `CounterfactualAnalyzer` — measure how greedy actions shift under battery/cargo perturbations
+- `FeatureImportance` — ablation-based logit sensitivity per node feature
+- `GroqExplainer` — natural-language explanations of episodes and individual steps via Groq LLM (`pip install "rl4evrp[llm]"`)
+
+**Developer experience**
+
+- `src`-layout, `pyproject.toml`, `uv`-managed dependencies
+- 130+ pytest tests with mocked external calls (no API key needed in CI)
+- GitHub Actions CI on Python 3.10 / 3.11 / 3.12 with ruff linting
+- YAML-driven configuration with dot-notation access and env-var interpolation
+- Ready-to-use `scripts/train.py` and `scripts/evaluate.py` CLIs
+
+---
+
 ## Table of contents
 
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [Features](#features)
 - [The problem](#the-problem)
 - [Package overview](#package-overview)
 - [Environment API](#environment-api)
@@ -83,32 +122,64 @@ pip install rl4evrp
 
 ## Quick start
 
+### High-level API (paper style)
+
+If you want to stay close to how the framework was used in the paper, use `RL4EVRP` and `ModelBuilder`. They read all settings from the YAML config files automatically.
+
+> **Note:** see [Configuration](#configuration) for how to customise or override the YAML files.
+
 ```python
-from rl4evrp.environment import generate_instance, EVRPEnv
+import rl4evrp as rl
+from rl4evrp.utils import train_agent, evaluate_agent
+
+# --- initialise (loads config, sets device + seed) ---
+framework = rl.RL4EVRP()                      # reads src/rl4evrp/config/*.yaml
+# or point to your own config directory:
+# framework = rl.RL4EVRP(config_dir="my_configs/")
+
+# --- inspect config ---
+model_config   = framework.read_yaml("model")
+problem_config = framework.read_yaml("problem")
+framework.print_config()
+
+# --- build agent from config ---
+model = framework.build().complete_model()    # A2CAgent with YAML hyperparams
+
+# --- generate data ---
+train_instances = [framework.generate_instance(seed=i)          for i in range(200)]
+eval_instances  = [framework.generate_instance(seed=1_000 + i)  for i in range(50)]
+
+# --- train ---
+results = train_agent(model, train_instances, n_episodes=500,
+                      eval_instances=eval_instances,
+                      device=str(framework.device))
+
+# --- evaluate ---
+stats = evaluate_agent(model, eval_instances, greedy=True)
+print(f"mean distance: {stats['mean_distance']:.4f} ± {stats['std_distance']:.4f}")
+print(f"mean reward:   {stats['mean_reward']:.4f} ± {stats['std_reward']:.4f}")
+```
+
+### Low-level API
+
+If you prefer explicit control over every hyperparameter without relying on YAML files:
+
+```python
+from rl4evrp.environment import generate_instance
 from rl4evrp.agents import A2CAgent
 from rl4evrp.utils import OnTheFlyInstancePool, train_agent, evaluate_agent
 
 # --- data ---
-def gen(seed):
-    return generate_instance(n_customers=15, seed=seed)
-
-train_pool = OnTheFlyInstancePool(gen, size=1000)       # lazy — no RAM overhead
-eval_instances = [gen(seed=10_000 + i) for i in range(50)]
+train_pool     = OnTheFlyInstancePool(lambda seed: generate_instance(n_customers=15, seed=seed), size=1000)
+eval_instances = [generate_instance(n_customers=15, seed=10_000 + i) for i in range(50)]
 
 # --- model ---
-agent = A2CAgent(
-    embed_dim=128, n_heads=8, n_layers=3,
-    lr=3e-4, gamma=0.99,
-    n_episodes=500, device="cpu",
-)
+agent = A2CAgent(embed_dim=128, n_heads=8, n_layers=3,
+                 lr=3e-4, gamma=0.99, n_episodes=500, device="cpu")
 
 # --- train ---
-results = train_agent(
-    agent, train_pool,
-    n_episodes=500,
-    eval_instances=eval_instances,
-    save_interval=100,
-)
+results = train_agent(agent, train_pool, n_episodes=500,
+                      eval_instances=eval_instances, save_interval=100)
 
 # --- evaluate ---
 stats = evaluate_agent(agent, eval_instances, greedy=True)
@@ -557,6 +628,85 @@ reproducibility:
   deterministic: true
 ```
 
+### Custom YAML configuration
+
+You are not limited to the built-in files. `Config` loads **all** `*.yaml` files it finds in the config directory, so you can drop any file in and read it with the same dot-notation API.
+
+**1. Create your own config directory**
+
+```
+my_project/
+└── configs/
+    ├── problem.yaml    # override built-in defaults
+    ├── model.yaml
+    ├── env.yaml
+    └── experiment.yaml # your own section — any name works
+```
+
+**2. Override built-in values**
+
+Copy the file you want to change and edit only the keys you care about — the rest use their defaults when you call `cfg.get(..., default=...)`:
+
+```yaml
+# configs/problem.yaml  — only override what you need
+problem:
+  n_customers: 50
+  battery_capacity: 150.0
+
+reward:
+  completion_bonus: 3.0
+```
+
+**3. Add your own sections**
+
+```yaml
+# configs/experiment.yaml
+experiment:
+  name: large-scale-run
+  notes: "50 customers, bigger battery"
+  tags: [v2, ablation]
+```
+
+**4. Load and read**
+
+```python
+from rl4evrp.config import Config
+
+cfg = Config(config_dir="my_project/configs")
+
+# override values
+n = cfg.get("problem.problem.n_customers")   # -> 50
+
+# your own section
+name  = cfg.get("experiment.experiment.name")          # -> "large-scale-run"
+tags  = cfg.get("experiment.experiment.tags")          # -> ["v2", "ablation"]
+
+# inspect everything
+cfg.print_config()
+
+# get a whole section as a plain dict
+exp = cfg.get_section("experiment")
+```
+
+**5. Environment variable interpolation**
+
+Any string value of the form `${VAR_NAME}` is resolved from `os.environ` at read time:
+
+```yaml
+# configs/experiment.yaml
+experiment:
+  groq_key: ${GROQ_API_KEY}
+  output_dir: ${OUTPUT_ROOT}/run1
+```
+
+```python
+import os
+os.environ["OUTPUT_ROOT"] = "/data/runs"
+cfg.get("experiment.experiment.output_dir")   # -> "/data/runs/run1"
+```
+
+> The built-in config files live at `src/rl4evrp/config/` and are used as defaults when you call `get_config()` without arguments. Pointing to a custom directory **replaces** the defaults entirely, so copy over any files you still want.
+
 ---
 
 ## XAI tools
@@ -800,3 +950,7 @@ MIT — see [LICENSE](LICENSE).
   url    = {https://github.com/sdley/evrp-framework}
 }
 ```
+
+## Acknowledgements
+This project was developed as part of the 2024 IDEATHON organized by the Deep Learning Indaba 2024. 
+We thank all the the Deep Learning Indaba organizers and mentors for their support and guidance throughout the development of this framework.
