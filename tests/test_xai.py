@@ -204,6 +204,122 @@ class TestGroqExplainer:
         assert "agent" in explanation.lower() or len(explanation) > 5
 
 
+class TestGroqExplainerDiagnostic:
+    """Tests for GroqExplainer.explain_diagnostic()."""
+
+    @pytest.fixture
+    def diag(self):
+        return {
+            "input_dim": 7, "embed_dim": 32, "num_layers": 2,
+            "total_params": 10_000, "encoder_params": 7_000,
+            "decoder_params": 2_000, "value_params": 1_000,
+            "has_nan": False, "has_inf": False,
+            "layer_stats": [
+                {
+                    "W_q": {"std": 0.07}, "W_k": {"std": 0.07},
+                    "W_v": {"std": 0.07}, "W_o": {"std": 0.07},
+                    "ff": {"std": 0.06}, "norm_w_mean": 1.0, "norm_b_mean": 0.0,
+                    "norm_w_std": 0.01, "norm_b_std": 0.01,
+                },
+                {
+                    "W_q": {"std": 0.09}, "W_k": {"std": 0.08},
+                    "W_v": {"std": 0.09}, "W_o": {"std": 0.07},
+                    "ff": {"std": 0.07}, "norm_w_mean": 0.98, "norm_b_mean": 0.02,
+                    "norm_w_std": 0.02, "norm_b_std": 0.01,
+                },
+            ],
+            "decoder_stats": {
+                "W_q": {"std": 0.09}, "W_k": {"std": 0.08},
+                "W_v": {"std": 0.08}, "W_o": {"std": 0.07},
+            },
+            "value_stats": {
+                "value_head.0.weight": {"std": 0.08, "mean": 0.0},
+                "value_head.2.weight": {"std": 0.05, "mean": 0.0},
+            },
+            "feature_stats": [
+                {"mean": 0.0, "std": 0.07 + i * 0.005, "min": -0.2, "max": 0.2}
+                for i in range(7)
+            ],
+        }
+
+    @pytest.fixture
+    def scores(self):
+        return {
+            "encoder_specialization": 45.0,
+            "decoder_readiness": 30.0,
+            "layernorm_adaptation": 20.0,
+            "feature_differentiation": 25.0,
+            "value_function_health": 50.0,
+            "weight_drift": None,
+            "decoder_encoder_balance": None,
+            "overall": 34.0,
+        }
+
+    @pytest.fixture
+    def drift(self):
+        return {
+            "total": 10.0, "embedding": 2.0, "encoder_layers": 5.0,
+            "decoder": 2.0, "value_head": 1.0,
+            "per_layer": [3.0, 2.0],
+            "per_feature": [1.5, 0.8, 1.2, 0.9, 1.1, 0.7, 1.3],
+            "std_changes": {},
+        }
+
+    def _make_explainer(self, reply: str = "Diagnostic explanation.") -> GroqExplainer:
+        explainer = GroqExplainer.__new__(GroqExplainer)
+        explainer.model = "llama-3.1-8b-instant"
+        explainer._client = _mock_groq_client(reply)
+        return explainer
+
+    def test_returns_string(self, diag, scores):
+        result = self._make_explainer("Model is undertrained.").explain_diagnostic(diag, scores)
+        assert isinstance(result, str) and len(result) > 0
+
+    def test_returns_llm_reply(self, diag, scores):
+        result = self._make_explainer("Layer 1 learned most.").explain_diagnostic(diag, scores)
+        assert result == "Layer 1 learned most."
+
+    def test_works_without_drift(self, diag, scores):
+        result = self._make_explainer().explain_diagnostic(diag, scores, drift=None)
+        assert isinstance(result, str)
+
+    def test_works_with_drift(self, diag, scores, drift):
+        result = self._make_explainer().explain_diagnostic(diag, scores, drift)
+        assert isinstance(result, str)
+
+    def test_calls_api_once(self, diag, scores):
+        explainer = self._make_explainer()
+        explainer.explain_diagnostic(diag, scores)
+        explainer._client.chat.completions.create.assert_called_once()
+
+    def test_saves_to_file(self, tmp_path, diag, scores):
+        out = str(tmp_path / "explanation.txt")
+        self._make_explainer("Saved.").explain_diagnostic(diag, scores, output_path=out)
+        content = (tmp_path / "explanation.txt").read_text().strip()
+        assert content == "Saved."
+
+    def test_no_file_without_output_path(self, diag, scores):
+        result = self._make_explainer().explain_diagnostic(diag, scores, output_path=None)
+        assert isinstance(result, str)
+
+    def test_integration_real_agent(self, agent):
+        """Real A2CAgent state_dict → analyze_checkpoint → explain_diagnostic (mocked API)."""
+        import importlib.util
+        import os
+        script = os.path.join(os.path.dirname(__file__), "..", "scripts", "diagnostic.py")
+        spec = importlib.util.spec_from_file_location("diagnostic", os.path.abspath(script))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        analyze_checkpoint = mod.analyze_checkpoint
+        compute_health_scores = mod.compute_health_scores
+
+        diag = analyze_checkpoint(agent.state_dict())
+        scores = compute_health_scores(diag)
+        explainer = self._make_explainer("Undertrained — train longer.")
+        result = explainer.explain_diagnostic(diag, scores)
+        assert isinstance(result, str) and len(result) > 0
+
+
 class TestAnalyzeDecisionPath:
     def test_empty_traces(self):
         result = analyze_decision_path([], node_idx=3)

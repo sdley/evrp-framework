@@ -38,6 +38,91 @@ def _format_step(trace: Dict) -> str:
     )
 
 
+def _build_diagnostic_prompt(diag: Dict, drift: Optional[Dict], scores: Dict) -> str:
+    score_lines = "\n".join(
+        f"  {name}: {val:.1f}/100"
+        for name, val in scores.items()
+        if val is not None
+    )
+
+    layer_lines = "\n".join(
+        f"  Layer {i}: W_q std={ls.get('W_q', {}).get('std', 0):.4f}, "
+        f"W_v std={ls.get('W_v', {}).get('std', 0):.4f}, "
+        f"FF std={ls.get('ff', {}).get('std', 0):.4f}, "
+        f"LayerNorm γ={ls.get('norm_w_mean', 1.0):.4f} β={ls.get('norm_b_mean', 0.0):.4f}"
+        for i, ls in enumerate(diag.get("layer_stats", []))
+    )
+
+    feat_lines = ", ".join(
+        f"F{i}={fs['std']:.4f}" for i, fs in enumerate(diag.get("feature_stats", []))
+    )
+
+    dec_lines = ", ".join(
+        f"{mat}={stats.get('std', 0):.4f}"
+        for mat, stats in diag.get("decoder_stats", {}).items()
+    )
+
+    xavier_std = 1.0 / (diag.get("embed_dim", 128) ** 0.5)
+
+    drift_section = ""
+    if drift:
+        total = drift.get("total", 0)
+        drift_section = textwrap.dedent(f"""
+            WEIGHT DRIFT FROM REFERENCE
+            ---------------------------
+            Total drift: {total:.2f}
+            Embedding:      {drift.get('embedding', 0):.2f}  ({drift.get('embedding', 0)/total*100 if total else 0:.1f}%)
+            Encoder layers: {drift.get('encoder_layers', 0):.2f}  ({drift.get('encoder_layers', 0)/total*100 if total else 0:.1f}%)
+            Decoder:        {drift.get('decoder', 0):.2f}  ({drift.get('decoder', 0)/total*100 if total else 0:.1f}%)
+            Value head:     {drift.get('value_head', 0):.2f}  ({drift.get('value_head', 0)/total*100 if total else 0:.1f}%)
+            Per-layer drift: {', '.join(f'L{i}={d:.2f}' for i, d in enumerate(drift.get('per_layer', [])))}
+        """).strip()
+
+    return textwrap.dedent(f"""
+        You are an expert in deep reinforcement learning and transformer model diagnostics.
+        Below are the computed statistics from a training health diagnostic for an A2C agent
+        trained on the Electric Vehicle Routing Problem (EVRP). The agent uses a GAT-based
+        encoder with {diag.get('num_layers', '?')} layers and a cross-attention decoder.
+
+        ARCHITECTURE
+        ------------
+        Input dim: {diag.get('input_dim', '?')}  Embed dim: {diag.get('embed_dim', '?')}
+        Layers: {diag.get('num_layers', '?')}  Total params: {diag.get('total_params', 0):,}
+        NaN detected: {diag.get('has_nan', False)}  Inf detected: {diag.get('has_inf', False)}
+        Xavier init std (expected at init): {xavier_std:.4f}
+
+        HEALTH SCORES (0-100, ≥60 healthy, 30-60 developing, <30 undertrained)
+        -----------------------------------------------------------------------
+{score_lines}
+
+        PER-LAYER ENCODER STATISTICS
+        -----------------------------
+{layer_lines}
+
+        PER-FEATURE EMBEDDING SPREAD (std per input feature column)
+        ------------------------------------------------------------
+        {feat_lines}
+
+        DECODER ATTENTION WEIGHT STD
+        ----------------------------
+        {dec_lines}
+
+        {drift_section}
+
+        TASK
+        ----
+        Interpret these diagnostics in plain English. Cover:
+        1. Overall training health verdict and what drives it.
+        2. Which encoder layers learned the most and what that implies.
+        3. Whether the decoder has adapted meaningfully or is still near initialization.
+        4. Whether the input features are being differentiated by the embedding layer.
+        5. Any warning signs (value collapse, NaN/Inf, near-zero drift in a component).
+        6. One concrete recommendation for what to do next (train longer, tune LR, etc.).
+
+        Be specific with numbers. Answer in 6-8 sentences.
+    """).strip()
+
+
 def _build_prompt(traces: List[Dict], inst: Dict, question: Optional[str]) -> str:
     n_customers = int((inst["node_types"] == 1).sum())
     n_chargers  = int((inst["node_types"] == 2).sum())
@@ -128,6 +213,41 @@ class GroqExplainer:
             max_tokens=512,
         )
         return response.choices[0].message.content.strip()
+
+    def explain_diagnostic(
+        self,
+        diag: Dict,
+        scores: Dict,
+        drift: Optional[Dict] = None,
+        output_path: Optional[str] = None,
+    ) -> str:
+        """
+        Generate a natural-language interpretation of a model diagnostic report.
+
+        Args:
+            diag:        Output of analyze_checkpoint()
+            scores:      Output of compute_health_scores()
+            drift:       Output of compute_drift() — pass None if no reference checkpoint
+            output_path: If given, write the explanation to this file path
+
+        Returns:
+            Plain-text explanation from the LLM.
+        """
+        prompt = _build_diagnostic_prompt(diag, drift, scores)
+        response = self._client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=600,
+        )
+        explanation = response.choices[0].message.content.strip()
+
+        if output_path:
+            with open(output_path, "w") as f:
+                f.write(explanation)
+                f.write("\n")
+
+        return explanation
 
     def explain_step(self, trace: Dict, inst: Dict) -> str:
         """

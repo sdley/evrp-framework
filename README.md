@@ -36,7 +36,7 @@
 - `AttentionTracer` — capture encoder and decoder attention weights at every step
 - `CounterfactualAnalyzer` — measure how greedy actions shift under battery/cargo perturbations
 - `FeatureImportance` — ablation-based logit sensitivity per node feature
-- `GroqExplainer` — natural-language explanations of episodes and individual steps via Groq LLM (`pip install "rl4evrp[llm]"`)
+- `GroqExplainer` — natural-language explanations of episodes, individual steps, and training diagnostic reports via Groq LLM (`pip install "rl4evrp[llm]"`)
 
 **Developer experience**
 
@@ -849,14 +849,49 @@ print(explanation)
 #    insufficient charge to return to the depot."
 ```
 
+**Explain a training diagnostic**
+
+`explain_diagnostic` reads the same numeric data that `scripts/diagnostic.py` uses to draw its figures and produces a plain-English interpretation — no image upload required.
+
+```python
+from rl4evrp.xai import GroqExplainer
+
+# diag, drift, scores come from diagnostic.py's analyze_checkpoint /
+# compute_drift / compute_health_scores, or pass drift=None if you have
+# no reference checkpoint.
+explanation = explainer.explain_diagnostic(
+    diag,
+    scores,
+    drift=drift,                        # optional
+    output_path="diagnostic_report.txt" # optional — saves alongside the PDF
+)
+print(explanation)
+# > "The model scores 34/100 overall and is still in early development.
+#    Layer 1 shows the highest encoder drift (3.0) suggesting it is where
+#    most task-relevant structure is forming, while Layer 0 has barely moved
+#    from initialisation …"
+```
+
+Or add `--explain` directly to the diagnostic script:
+
+```bash
+python scripts/diagnostic.py checkpoint.pt --output diagnostic.pdf --explain
+# LLM explanation is printed and saved as diagnostic_explanation.txt
+
+# with a reference checkpoint for drift analysis:
+python scripts/diagnostic.py checkpoint.pt --reference init.pt --explain \
+    --explain-output report.txt
+```
+
 **GroqExplainer API**
 
 | Method | Returns | Description |
 |---|---|---|
 | `explain_episode(traces, inst, question=None)` | `str` | 3–5 sentence strategy summary for a full episode |
 | `explain_step(trace, inst)` | `str` | 1–2 sentence explanation of a single decision |
+| `explain_diagnostic(diag, scores, drift=None, output_path=None)` | `str` | Plain-English interpretation of a training diagnostic report |
 
-The `traces` argument is the list returned by `collect_traces_during_episode()`. The `inst` argument is the instance dict returned by `generate_instance()`.
+The `traces` argument is the list returned by `collect_traces_during_episode()`. The `inst` argument is the instance dict returned by `generate_instance()`. The `diag` and `scores` arguments are the dicts returned by `analyze_checkpoint()` and `compute_health_scores()` in `scripts/diagnostic.py`.
 
 > **Note:** `groq` is an optional dependency. Importing `rl4evrp` or `rl4evrp.xai` without the `llm` extra installed works fine — the `ImportError` is raised only when you instantiate `GroqExplainer`.
 
@@ -897,6 +932,31 @@ uv run python scripts/evaluate.py results/run1/agent_final.pt \
 
 Flags must match training settings (`--embed-dim`, `--n-layers`, etc.).
 
+### `scripts/diagnostic.py`
+
+Inspects a checkpoint's internal weight statistics to answer *"has my model actually learned something?"* — independent of reward curves.
+
+```
+usage: diagnostic.py [-h] [--reference REF] [--output PATH] [--name NAME]
+                     [--explain] [--explain-output PATH]
+                     checkpoint
+```
+
+```bash
+# basic health report → model_diagnostic.pdf
+python scripts/diagnostic.py results/run1/agent_final.pt
+
+# compare against an earlier checkpoint to see where learning happened
+python scripts/diagnostic.py results/run1/agent_final.pt \
+    --reference results/run1/checkpoints/agent_episode_0.pt \
+    --output diagnostic.pdf
+
+# add an LLM explanation (requires GROQ_API_KEY and rl4evrp[llm])
+python scripts/diagnostic.py results/run1/agent_final.pt --explain
+```
+
+The PDF contains ten panels covering health scores (0–100), per-layer attention weight statistics, feature embedding spread, encoder vs decoder weight distributions, per-component drift, LayerNorm adaptation, and a plain-English verdict. The `--explain` flag appends a Groq-generated narrative saved alongside the PDF.
+
 ---
 
 ## Testing
@@ -917,7 +977,7 @@ Test coverage by module:
 | `test_models.py` | `MultiHeadAttention`, `GATEncoderLayer`, `EVRPEncoder` (gat+mlp), `EVRPDecoder` |
 | `test_agents.py` | `A2CAgent` forward, select_action, update, inference |
 | `test_utils.py` | `OnTheFlyInstancePool`, `run_episode`, `evaluate_agent` |
-| `test_xai.py` | `AttentionTracer`, `CounterfactualAnalyzer`, `FeatureImportance`, trace helpers |
+| `test_xai.py` | `AttentionTracer`, `CounterfactualAnalyzer`, `FeatureImportance`, trace helpers, `GroqExplainer` (episode, step, diagnostic — mocked API) |
 | `test_config.py` | `Config` dot-notation, sections, singleton, YAML loading |
 
 ---
