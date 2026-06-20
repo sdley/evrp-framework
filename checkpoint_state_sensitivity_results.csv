@@ -1,0 +1,11 @@
+distance_mean,distance_std,served_mean,feasible_rate,charger_mean,checkpoint,test_state,n_features,n_active_features,feature_names
+6.136345643997192,1.085091975322419,12.72,1.0,0.0,agent_episode_100000.pt,Original full 7,7,7,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'battery_capacity_norm']"
+6.3293607139587404,1.0492131101591555,12.72,1.0,0.0,agent_episode_100000.pt,No battery,7,6,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'zeros']"
+6.095010261535645,1.0369634554310456,12.72,1.0,0.0,agent_episode_100000.pt,No cargo,7,6,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'zeros', 'battery_capacity_norm']"
+27.71976484298706,13.17675301400161,6.72,0.02,37.72,agent_episode_100000.pt,No node type flags,7,5,"['x', 'y', 'demand_normalized', 'zeros', 'zeros', 'cargo_capacity_norm', 'battery_capacity_norm']"
+27.559051933288575,13.024026325087682,6.68,0.02,37.78,agent_episode_100000.pt,Spatial+demand only,7,3,"['x', 'y', 'demand_normalized', 'zeros', 'zeros', 'zeros', 'zeros']"
+6.611395292282104,1.1720207757784453,12.72,1.0,0.0,agent_evrptw_60k.pt,Original full 7,7,7,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'battery_capacity_norm']"
+6.631639003753662,1.069652863092537,12.72,1.0,0.0,agent_evrptw_60k.pt,No battery,7,6,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'cargo_capacity_norm', 'zeros']"
+6.631358795166015,1.0996833439676266,12.72,1.0,0.0,agent_evrptw_60k.pt,No cargo,7,6,"['x', 'y', 'demand_normalized', 'is_charger', 'is_depot', 'zeros', 'battery_capacity_norm']"
+29.623496189117432,12.56993190210704,5.22,0.02,34.68,agent_evrptw_60k.pt,No node type flags,7,5,"['x', 'y', 'demand_normalized', 'zeros', 'zeros', 'cargo_capacity_norm', 'battery_capacity_norm']"
+28.18691129684448,12.990569064828179,5.26,0.04,36.86,agent_evrptw_60k.pt,Spatial+demand only,7,3,"['x', 'y', 'demand_normalized', 'zeros', 'zeros', 'zeros', 'zeros']"

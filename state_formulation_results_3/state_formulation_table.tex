@@ -1,0 +1,18 @@
+\begin{table}[ht]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc}
+\toprule
+State formulation & Dist. & Served & Feas. & Chg. \\
+\midrule
+\textbf{Original full} & \textbf{3.25} & \textbf{1.6} & \textbf{0%} & \textbf{5.9} \\
+Static graph & 3.94 (+21.1\%) & 0.3 & 0% & 8.6 \\
+Spatial+time & 3.64 (+11.9\%) & 3.6 & 0% & 6.3 \\
+Resource-aware & 3.95 (+21.7\%) & 0.2 & 0% & 9.8 \\
+Constraint-aware & 2.96 (-9.0\%) & 2.2 & 0% & 1.2 \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of alternative state formulations for RL4EVRP. All experiments use the same model architecture, reward, and training setup; only the configured state definition differs.}
+\label{tab:state_formulation}
+\end{table}

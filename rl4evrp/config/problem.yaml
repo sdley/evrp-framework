@@ -3,6 +3,7 @@
 # This file defines the EVRP instance size, resource limits, reward behavior,
 # and the feature layout used by the neural network.
 
+
 problem:
   name: evrptw # Problem identifier used in logs and outputs
   n_customers: 25 # Number of customers to place in each instance
@@ -29,9 +30,20 @@ reward:
   charger_penalty: 0.05 # Small penalty for visiting a charger
   early_return_penalty: 0.3 # Penalty for returning to depot before completing service
   battery_violation_penalty: 1.0 # Penalty when battery feasibility is broken
+  time_window_violation_penalty: 1.5 # Penalty for serving a node after due time
+  waiting_time_penalty: 0.05 # Per-step waiting penalty (normalized by horizon)
+
+time_windows:
+  enabled: true # Toggle EVRPTW behavior
+  time_horizon: 4.0 # Max schedule horizon for normalized time features
+  tw_width_min: 0.4 # Minimum window width for customer nodes
+  tw_width_max: 1.2 # Maximum window width for customer nodes
+  service_time_customer: 0.05 # Service duration at customer nodes
+  service_time_charger: 0.03 # Service/recharge duration at charger nodes
+  service_time_depot: 0.0 # Service duration at depot
 
 node_features:
-  feature_dim: 7 # Number of input features per node
+  feature_dim: 10 # Number of input features per node
   names:
     - x # Normalized x-coordinate
     - y # Normalized y-coordinate
@@ -40,6 +52,9 @@ node_features:
     - is_depot # Binary indicator for the depot node
     - cargo_capacity_norm # Cargo capacity normalized for the model input
     - battery_capacity_norm # Battery capacity normalized for the model input
+    - tw_ready_norm # Earliest service time normalized by horizon
+    - tw_due_norm # Latest service time normalized by horizon
+    - service_time_norm # Service duration normalized by horizon
 
 metrics:
   collect_traces: true # Collect per-step traces for XAI and debugging
