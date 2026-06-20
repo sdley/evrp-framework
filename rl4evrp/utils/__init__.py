@@ -4,10 +4,52 @@ Utility functions for RL4EVRP: episode runner, training loops, etc.
 
 import numpy as np
 import torch
-from typing import Dict, Tuple, List, Optional
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
 from pathlib import Path
 
 from rl4evrp.environment import EVRPEnv
+
+
+InstanceProvider = Union[Sequence[Dict], Callable[[int], Dict]]
+
+
+class OnTheFlyInstancePool:
+    """
+    Lightweight, deterministic instance pool for memory-efficient training.
+
+    Instances are generated on access from a seed schedule instead of being
+    pre-materialized in RAM.
+    """
+
+    def __init__(self, generate_fn: Callable[[int], Dict], size: int, seed_offset: int = 0):
+        if size <= 0:
+            raise ValueError("size must be > 0 for OnTheFlyInstancePool")
+        self.generate_fn = generate_fn
+        self.size = int(size)
+        self.seed_offset = int(seed_offset)
+
+    def __len__(self) -> int:
+        return self.size
+
+    def __getitem__(self, idx: int) -> Dict:
+        mapped_idx = int(idx) % self.size
+        return self.generate_fn(seed=self.seed_offset + mapped_idx)
+
+
+def _resolve_training_instance(train_instances: InstanceProvider, episode: int) -> Dict:
+    """Resolve one training instance from either a sequence or a callable provider."""
+    if callable(train_instances):
+        inst = train_instances(episode)
+    else:
+        if len(train_instances) == 0:
+            raise ValueError("train_instances must not be empty")
+        inst = train_instances[episode % len(train_instances)]
+
+    if not isinstance(inst, dict):
+        raise TypeError("Each training instance must be a dict")
+
+    # Shallow copy to avoid mutating shared/cached instance objects.
+    return dict(inst)
 
 
 def run_episode(agent, inst: dict, device: str = 'cpu', greedy: bool = False,
@@ -123,7 +165,7 @@ def run_episode(agent, inst: dict, device: str = 'cpu', greedy: bool = False,
     return total_reward, env.route, env.total_d, info, transitions, traces, env
 
 
-def train_agent(agent, train_instances: List[Dict], n_episodes: int = 100,
+def train_agent(agent, train_instances: InstanceProvider, n_episodes: int = 100,
                 device: str = 'cpu', save_dir: Optional[Path] = None,
                 eval_instances: Optional[List[Dict]] = None,
                 save_interval: int = 10) -> Dict:
@@ -132,7 +174,9 @@ def train_agent(agent, train_instances: List[Dict], n_episodes: int = 100,
     
     Args:
         agent: A2CAgent instance
-        train_instances: List of training instances
+        train_instances: Training instances as either:
+            - sequence of instance dicts
+            - callable provider: f(episode_idx) -> instance dict
         n_episodes: Number of episodes to train
         device: Device to use
         save_dir: Directory to save checkpoints
@@ -156,8 +200,8 @@ def train_agent(agent, train_instances: List[Dict], n_episodes: int = 100,
     entropies = []
     
     for episode in range(n_episodes):
-        # Select random instance
-        inst = train_instances[episode % len(train_instances)]
+        # Resolve training instance (supports lazy providers)
+        inst = _resolve_training_instance(train_instances, episode)
         inst['reward_mode'] = 'distance'  # Default reward mode
         
         # Run episode with gradients enabled
@@ -186,6 +230,7 @@ def train_agent(agent, train_instances: List[Dict], n_episodes: int = 100,
         if eval_instances and (episode + 1) % save_interval == 0:
             eval_rews = []
             for eval_inst in eval_instances[:5]:  # Eval on first 5
+                eval_inst = dict(eval_inst)
                 eval_inst['reward_mode'] = 'distance'
                 eval_reward, _, _, _, _, _, _ = run_episode(
                     agent, eval_inst, device=device, greedy=True
@@ -237,6 +282,7 @@ def evaluate_agent(agent, instances: List[Dict], device: str = 'cpu',
     routes = []
     
     for inst in instances:
+        inst = dict(inst)
         inst['reward_mode'] = 'distance'
         reward, route, dist, info, _, _, _ = run_episode(
             agent, inst, device=device, greedy=greedy
