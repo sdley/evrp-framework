@@ -37,7 +37,7 @@ PY
 ## 4. Open notebook workflow
 
 - Main demo: `run.ipynb`
-- Additional study notebooks: `decision.ipynb`, `variant.ipynb`, `full_state_transfer_eval.ipynb`
+- Additional study notebooks: `notebooks/decision.ipynb`, `notebooks/variant.ipynb`, `notebooks/full_state_transfer_eval.ipynb`, `notebooks/masking_battery_effect.ipynb`
 
 ## 5. Run organized scripts
 

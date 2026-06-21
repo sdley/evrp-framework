@@ -24,6 +24,11 @@ A research-oriented framework for Electric Vehicle Routing Problems (EVRP) with 
 ├── scripts/
 │   ├── experiments/          # Experiment runners and comparisons
 │   └── figures/              # Figure generation scripts
+├── notebooks/                # Additional experiment notebooks
+│   ├── decision.ipynb
+│   ├── variant.ipynb
+│   ├── full_state_transfer_eval.ipynb
+│   └── masking_battery_effect.ipynb
 ├── results/                  # Generated artifacts (figures, CSVs, study outputs)
 │   ├── data/
 │   ├── figures/
@@ -31,7 +36,7 @@ A research-oriented framework for Electric Vehicle Routing Problems (EVRP) with 
 │   ├── studies/
 │   └── xai/
 ├── tests/                    # Validation/test scripts
-├── run.ipynb                 # Main runnable notebook example
+├── run.ipynb                 # Main runnable notebook example (kept at root)
 ├── QUICKSTART.md             # Practical 5-minute setup
 ├── requirements.txt
 └── setup.py
