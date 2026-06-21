@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 # Add framework to path
-framework_path = Path.cwd()
+framework_path = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(framework_path))
 
 import rl4evrp as rl

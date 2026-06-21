@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 # Add framework to path
-framework_path = Path.cwd()
+framework_path = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(framework_path))
 
 import rl4evrp as rl

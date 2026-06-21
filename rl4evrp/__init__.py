@@ -9,13 +9,11 @@ Quick Start:
     >>> instances = [framework.generate_instance(seed=i) for i in range(200)]
 """
 
-import os
-import sys
 import torch
 import numpy as np
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 # Core imports
 from .config import Config, get_config
@@ -54,13 +52,15 @@ __all__ = [
 class RL4EVRP:
     """Main framework for EVRP with Deep RL and XAI."""
     
-    def __init__(self, config_dir: Optional[Path] = None):
+    def __init__(self, config_dir: Optional[Path] = None, verbose: bool = False):
         """
         Initialize the RL4EVRP framework.
         
         Args:
             config_dir: Path to directory with YAML configs
+            verbose: Whether to print initialization information
         """
+        self.verbose = verbose
         self.config = get_config(config_dir)
         self._setup_device()
         self._setup_seed()
@@ -75,7 +75,8 @@ class RL4EVRP:
         else:
             self.device = torch.device('cpu')
         
-        print(f"✓ Device: {self.device}")
+        if self.verbose:
+            print(f"Device: {self.device}")
     
     def _setup_seed(self):
         """Setup reproducibility seeds."""
@@ -97,7 +98,8 @@ class RL4EVRP:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         
-        print(f"✓ Output directory: {self.output_dir}")
+        if self.verbose:
+            print(f"Output directory: {self.output_dir}")
     
     def read_yaml(self, section: str) -> Dict:
         """
@@ -215,7 +217,8 @@ class ModelBuilder:
             device=str(self.framework.device)
         )
         
-        print(f"✓ Agent initialized with {sum(p.numel() for p in agent.parameters())} parameters")
+        if self.framework.verbose:
+            print(f"Agent initialized with {sum(p.numel() for p in agent.parameters())} parameters")
         return agent
     
     def complete_model(self):

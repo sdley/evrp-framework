@@ -4,7 +4,6 @@ Handles loading YAML configs, environment variables, and provides unified access
 """
 
 import os
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 import yaml
@@ -40,7 +39,7 @@ class Config:
         """Load all YAML config files from config directory."""
         for yaml_file in sorted(self.config_dir.glob("*.yaml")):
             config_name = yaml_file.stem
-            with open(yaml_file, 'r') as f:
+            with open(yaml_file, 'r', encoding='utf-8') as f:
                 self._configs[config_name] = yaml.safe_load(f) or {}
     
     def get(self, key: str, default: Any = None) -> Any:
