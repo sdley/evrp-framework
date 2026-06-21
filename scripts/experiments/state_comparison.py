@@ -469,7 +469,7 @@ def main():
                         help="Override number of training instances")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed")
-    parser.add_argument("--output-dir", type=str, default="state_formulation_results",
+    parser.add_argument("--output-dir", type=str, default="results/studies/state_formulation",
                         help="Directory to save outputs")
     args = parser.parse_args()
 

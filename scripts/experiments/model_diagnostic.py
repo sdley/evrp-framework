@@ -25,6 +25,7 @@ Can compare against:
 import argparse
 import sys
 import os
+from pathlib import Path
 import numpy as np
 import torch
 import matplotlib
@@ -668,6 +669,7 @@ def plot_diagnostic(diag, drift=None, scores=None, output_path="model_diagnostic
                        fontsize=10, transform=ax_verdict.transAxes,
                        family="monospace", linespacing=1.6)
 
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close()
     print(f"\nDiagnostic saved to {output_path}")
@@ -685,7 +687,7 @@ def main():
     parser.add_argument("--reference", "-r", default=None,
                         help="Reference checkpoint for drift comparison "
                              "(e.g., initialization or earlier checkpoint)")
-    parser.add_argument("--output", "-o", default="model_diagnostic.pdf",
+    parser.add_argument("--output", "-o", default="results/figures/model_diagnostic.pdf",
                         help="Output path for diagnostic plot")
     parser.add_argument("--name", default=None,
                         help="Model name for title")

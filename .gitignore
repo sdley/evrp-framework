@@ -73,7 +73,6 @@ venv.bak/
 
 # Results and outputs
 results_xai/
-results/
 checkpoints/
 *.pt
 *.pth

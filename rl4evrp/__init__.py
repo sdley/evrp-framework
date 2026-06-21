@@ -94,7 +94,7 @@ class RL4EVRP:
     
     def _setup_output(self):
         """Setup output directory."""
-        output_dir = self.config.get('env.output_directory', 'results_xai')
+        output_dir = self.config.get('env.output_directory', 'results/xai')
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         

@@ -44,3 +44,10 @@ PY
 - Experiments: `scripts/experiments/`
 - Figures: `scripts/figures/`
 - Validation/test scripts: `tests/`
+
+## 6. Find outputs
+
+- Figures and plots: `results/figures/`
+- CSV outputs: `results/data/`
+- Study-specific outputs: `results/studies/`
+- Additional generated assets: `results/images/` and `results/xai/`

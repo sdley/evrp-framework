@@ -8,6 +8,7 @@ A research-oriented framework for Electric Vehicle Routing Problems (EVRP) with 
 - Config-driven experiments via YAML in `rl4evrp/config/`
 - Reproducible notebooks for analysis in the repository root
 - Offline experiment and figure scripts in `scripts/`
+- Experiment artifacts in `results/`
 
 ## Repository layout
 
@@ -23,6 +24,12 @@ A research-oriented framework for Electric Vehicle Routing Problems (EVRP) with 
 ├── scripts/
 │   ├── experiments/          # Experiment runners and comparisons
 │   └── figures/              # Figure generation scripts
+├── results/                  # Generated artifacts (figures, CSVs, study outputs)
+│   ├── data/
+│   ├── figures/
+│   ├── images/
+│   ├── studies/
+│   └── xai/
 ├── tests/                    # Validation/test scripts
 ├── run.ipynb                 # Main runnable notebook example
 ├── QUICKSTART.md             # Practical 5-minute setup
@@ -59,6 +66,7 @@ print(stats["mean_distance"])
 - Experiments: `python scripts/experiments/<script>.py ...`
 - Figures: `python scripts/figures/<script>.py ...`
 - Validation: `python tests/<script>.py ...`
+- Default outputs now target `results/` subfolders.
 
 ## Reproducibility
 

@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -580,6 +581,7 @@ def plot_figure(results, output_path):
         ax.set_xlim(0, max(1, len(r["feasible_log"]) - 1))
         ax.set_ylim(bottom=0)
 
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=300, bbox_inches="tight", facecolor="white")
     plt.close()
     print(f"Saved to {output_path}")
@@ -590,7 +592,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default="variant_comparison.pdf")
+    parser.add_argument("--output", default="results/figures/variant_comparison.pdf")
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--seed", type=int, default=42)

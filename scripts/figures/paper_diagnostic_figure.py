@@ -298,7 +298,7 @@ if __name__ == "__main__":
     parser.add_argument("--trained", required=True, help="Later/trained checkpoint path")
     parser.add_argument("--init", required=True,
                         help="Reference checkpoint for drift (init or earliest)")
-    parser.add_argument("--output", default="training_diagnostic.pdf")
+    parser.add_argument("--output", default="results/figures/training_diagnostic.pdf")
     parser.add_argument("--early-label", default="Early (800 ep)")
     parser.add_argument("--trained-label", default="Trained (18k ep)")
     args = parser.parse_args()

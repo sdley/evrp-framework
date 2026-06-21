@@ -16,6 +16,7 @@ Usage:
 import argparse
 import torch
 import numpy as np
+from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -94,6 +95,7 @@ def make_figure(checkpoint_paths, episode_counts, output_path):
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.22)  # make room for legend below
 
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     print(f"Saved to {output_path}")
@@ -105,7 +107,7 @@ if __name__ == "__main__":
                         help="Checkpoint paths in order")
     parser.add_argument("--episodes", nargs="+", type=int, required=True,
                         help="Episode counts matching checkpoints")
-    parser.add_argument("--output", default="value_head_collapse.pdf")
+    parser.add_argument("--output", default="results/figures/value_head_collapse.pdf")
     args = parser.parse_args()
 
     assert len(args.checkpoints) == len(args.episodes), \
